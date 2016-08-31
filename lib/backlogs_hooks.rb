@@ -16,7 +16,7 @@ module BacklogsPlugin
       end
 
       def helper_issues_show_detail_after_setting(context={ })
-      	begin
+        begin
           if context[:detail].prop_key == 'release_id'
             r = RbRelease.find_by_id(context[:detail].value)
             context[:detail].value = r.name unless r.nil? || r.name.nil?
@@ -88,32 +88,56 @@ module BacklogsPlugin
 
           return '' unless Backlogs.configured?(issue.project)
 
+          snippet = "<div class='splitcontent'>"
+
           project = context[:project]
 
-          issue_fields_rows do |rows|
-
-            if issue.is_story?
-              rows.left l(:field_story_points), RbStory.find(issue.id).points_display, :class => 'story-points'
-              unless issue.remaining_hours.nil?
-                rows.right l(:field_remaining_hours), l_hours(issue.remaining_hours), :class => 'remaining-hours'
-              end
-
-              vbe = issue.velocity_based_estimate
-              rows.left l(:field_velocity_based_estimate), vbe ? vbe.to_s + ' days' : '-', :class => 'velocity-based-estimate'
-
-              unless issue.release_id.nil?
-                release = RbRelease.find(issue.release_id)
-                rows.left l(:field_release), link_to(release.name, url_for_prefix_in_hooks + url_for({:controller => 'rb_releases', :action => 'show', :release_id => release})), :class => 'release'
-                relation_translate = l("label_release_relationship_#{RbStory.find(issue.id).release_relationship}")
-                rows.right l(:field_release_relationship), relation_translate, :class => 'release-relationship'
-              end
+          if issue.is_story?
+            snippet += "<div class='splitcontentleft'>"
+            snippet +=  "<div class='story_points attribute'>"
+            snippet +=    "<div class='label'>#{l(:field_story_points)}:</div>"
+            snippet +=    "<div class='value'>#{RbStory.find(issue.id).points_display}</div>"
+            snippet +=  "</div>"
+            unless issue.remaining_hours.nil?
+              snippet += "<div class='remaining_hours attribute'>"
+              snippet +=   "<div class='label'>#{l(:field_remaining_hours)}:</div>"
+              snippet +=   "<div class='value'>#{l_hours(issue.remaining_hours)}</div>"
+              snippet += "</div>"
             end
+            snippet += "</div>"
 
-            if issue.is_task? && User.current.allowed_to?(:update_remaining_hours, project) != nil
-              rows.left l(:field_remaining_hours), issue.remaining_hours, :class => 'remaining-hours'
+            vbe = issue.velocity_based_estimate
+            snippet += "<div class='splitcontentleft'>"
+            snippet +=  "<div class='velocity_based_estimate attribute'>"
+            snippet +=    "<div class='label'>#{l(:field_velocity_based_estimate)}:</div>"
+            snippet +=    "<div class='value'>#{vbe ? vbe.to_s + ' days' : '-'}</div>"
+            snippet +=  "</div>"
+
+            unless issue.release_id.nil?
+              release = RbRelease.find(issue.release_id)
+              snippet += "<div class='release_id attribute'>"
+              snippet +=  "<div class='label'>#{l(:field_release)}:</div>"
+              snippet +=  "<div class='value'>#{link_to(release.name, url_for_prefix_in_hooks + url_for({:controller => 'rb_releases', :action => 'show', :release_id => release}))}</div>"
+
+              relation_translate = l("label_release_relationship_#{RbStory.find(issue.id).release_relationship}")
+              snippet +=  "<div class='label'>#{l(:field_release_relationship)}:</div>"
+              snippet +=  "<div class='value'>#{relation_translate}</div>"
             end
-
+            snippet += "</div>"
           end
+
+          if issue.is_task? && User.current.allowed_to?(:update_remaining_hours, project) != nil
+            snippet += "<div class='splitcontentleft'>"
+            snippet +=  "<div class='task_remaining_hours attribute'>"
+            snippet +=    "<div class='label'>#{l(:field_remaining_hours)}:</div>"
+            snippet +=    "<div class='value'>#{issue.remaining_hours}</div>"
+            snippet +=  "</div>"
+            snippet += "</div>"
+          end
+
+          snippet += "</div>"
+
+          return snippet
         rescue => e
           exception(context, e)
         end
