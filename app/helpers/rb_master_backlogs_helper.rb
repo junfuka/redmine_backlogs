@@ -58,8 +58,4 @@ module RbMasterBacklogsHelper
   def stories(backlog)
     backlog[:stories] || backlog.stories
   end
-
-  def due_date_enabled?
-    Backlogs.setting[:show_due_date]
-  end
 end
